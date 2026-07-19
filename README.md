@@ -1,1 +1,1 @@
-# ICG
+# Interactive computer graphics ICG 

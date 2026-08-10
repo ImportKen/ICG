@@ -16,7 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/EXRLoader.js"></script>
     <script>
 
         const renderer = new THREE.WebGLRenderer();
@@ -42,76 +42,112 @@
        
         // set light
 
-        // const pointlight = new THREE.PointLight(0xffffff, 2);
-        // // x y z (y = hiegh)
-        // pointlight.position.set(0, 1, 3);
-        // pointlight.castShadow = true; // Shadow
-        // scene.add(pointlight);
+        const pointlight = new THREE.PointLight(0x008000, 1);
+        // x y z (y = hiegh)
+        pointlight.position.set(0, 1, 3);
+        pointlight.castShadow = true; // Shadow
+        scene.add(pointlight);
 
-        // //pointlight 2
+        //pointlight 2
 
-        // const pointlight2 = new THREE.PointLight(0xffff12, 1);
-        // pointlight2.position.set(0, 5,0);
-        // pointlight2.castShadow = true; // Shadow
-        // scene.add(pointlight2);
+        const pointlight2 = new THREE.PointLight(0x0000FF, 1);
+        pointlight2.position.set(0, 5,0);
+        pointlight2.castShadow = true; // Shadow
+        scene.add(pointlight2);
 
-        // //spotlight
+        //spotlight
 
-        // const spotlight = new THREE.SpotLight(0xFF0000, 5);
-        // spotlight.position.set(-3, 5, 0);
-        // spotlight.target.position.set(-3, 0, -2);
-        // spotlight.angle = Math.PI / 16;
-        // spotlight.castShadow = true; // Shadow
-        // scene.add(spotlight);
-        // scene.add(spotlight.target);
+        const spotlight = new THREE.SpotLight(0xFF0000, 5);
+        spotlight.position.set(-3, 5, 0);
+        spotlight.target.position.set(-3, 0, -2);
+        spotlight.angle = Math.PI / 16;
+        spotlight.castShadow = true; // Shadow
+        scene.add(spotlight);
+        scene.add(spotlight.target);
 
-        // const spotlight2 = new THREE.SpotLight(0x008000, 5);
-        // spotlight2.position.set(-3, 5, 0);
-        // spotlight2.target.position.set(-3, 0, -1);
-        // spotlight2.angle = Math.PI / 16;
-        // spotlight2.castShadow = true; // Shadow
-        // scene.add(spotlight2);
-        // scene.add(spotlight2.target);
-        // scene.add(spotlight.target);
+        const spotlight2 = new THREE.SpotLight(0x008000, 5);
+        spotlight2.position.set(-3, 5, 0);
+        spotlight2.target.position.set(-3, 0, -1);
+        spotlight2.angle = Math.PI / 16;
+        spotlight2.castShadow = true; // Shadow
+        scene.add(spotlight2);
+        scene.add(spotlight2.target);
+        scene.add(spotlight.target);
 
-        // //spotligh3
+        //spotligh3
         
-        // const spotlight3 = new THREE.SpotLight(0x0000FF, 5);
-        // spotlight3.position.set(-3, 5, 0);
-        // spotlight3.target.position.set(-2, 0, -1.5);
-        // spotlight3.angle = Math.PI / 16;
-        // spotlight3.castShadow = true; // Shadow
-        // scene.add(spotlight3);
-        // scene.add(spotlight3.target);
-        // scene.add(spotlight.target);
+        const spotlight3 = new THREE.SpotLight(0x0000FF, 5);
+        spotlight3.position.set(-3, 5, 0);
+        spotlight3.target.position.set(-2, 0, -1.5);
+        spotlight3.angle = Math.PI / 16;
+        spotlight3.castShadow = true; // Shadow
+        scene.add(spotlight3);
+        scene.add(spotlight3.target);
+        scene.add(spotlight.target);
         
 
-        // // directional light
-        // const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        // directionalLight.position.set(5, 10, 7.5);
-        // directionalLight.castShadow = true; // Shadow
-        // scene.add(directionalLight);
+        // directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(5, 10, 7.5);
+        directionalLight.castShadow = true; // Shadow
+        scene.add(directionalLight);
 
 
-        // //area light
-        // const areaLight = new THREE.RectAreaLight(0xffffff, 1, 2, 2);
-        // areaLight.intensity = 5;
-        // areaLight.position.set(3, 1, 3);
-        // areaLight.lookAt(3, 1, 0);
-        // scene.add(areaLight);
+        //area light
+        const areaLight = new THREE.RectAreaLight(0xffffff, 1, 2, 2);
+         areaLight.intensity = 3;
+        areaLight.position.set(3, 1, 3);
+        areaLight.lookAt(3, 1, 0);
+        scene.add(areaLight);
 
-        // //area light 2
-        // const areaLight2 = new THREE.RectAreaLight(0xffffff, 1, 2, 2);
-        // areaLight2.intensity = 5;
-        // areaLight2.position.set(-3, 1, 3);
-        // areaLight2.lookAt(-3, 1, 0);
-        // scene.add(areaLight2);
+        //area light 2
+        const areaLight2 = new THREE.RectAreaLight(0xffffff, 1, 2, 2);
+         areaLight2.intensity = 3;
+        areaLight2.position.set(-3, 1, 3);
+        areaLight2.lookAt(-3, 1, 0);
+        scene.add(areaLight2);
 
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+        const ambientLight = new THREE.AmbientLight(0x800080, 1);
     
         scene.add(ambientLight);
 
+         scene.background = new THREE.Color(0x800080);
+         scene.fog = new THREE.Fog(0x800080, 1, 10);
+
+
+
+         //skybox
+        const loader = new THREE.CubeTextureLoader();
+        const skybox = loader.setPath('https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/cube/Bridge2/')
+        .load([
+        'posx.jpg', 'negx.jpg',
+        'posy.jpg', 'negy.jpg',
+        'posz.jpg', 'negz.jpg'
+        ]);
+        skybox.encoding = THREE.sRGBEncoding;
+        scene.background = skybox;
+        scene.environment = skybox;
+
+        // Panoramic 360-degree EXR skybox
+        const exrSkyboxUrl = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/exr/1k/venice_sunset_1k.exr';
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        new THREE.EXRLoader()
+            .setDataType(THREE.UnsignedByteType)
+            .load(exrSkyboxUrl, (texture) => {
+                const skybox = pmremGenerator.fromEquirectangular(texture).texture;
+                scene.background = skybox;
+                scene.environment = skybox;
+
+                texture.dispose();
+                pmremGenerator.dispose();
+            }, undefined, (error) => {
+                console.error('Unable to load EXR skybox:', error);
+            });
+
+            
 
 
 

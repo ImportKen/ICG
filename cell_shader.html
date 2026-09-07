@@ -80,6 +80,8 @@
 
       // 2. Diffuse (คำนวณใน World Space)
       float diffuse = max(dot(N, L), 0.0);
+      float level = 40.0;
+      diffuse = floor(diffuse * float(level)) / float(level);
       
       // 3. Ambient
       float ambient = 0.15; 
@@ -94,7 +96,7 @@
       vec3 specularColor = vec3(1.0);
 
       // 5. รวมผลลัพธ์แสง
-      vec3 finalColor = baseColor * (diffuse + ambient) + (specularColor * specular);
+      vec3 finalColor = baseColor * (diffuse + ambient);
 
       gl_FragColor = vec4(finalColor, 1.0);
     }

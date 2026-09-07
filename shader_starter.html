@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shader Starter • three.js r128</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<script>
+  // Scene / Camera / Renderer
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x111111);
+
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    innerWidth / innerHeight,
+    0.1,
+    100
+  );
+  camera.position.set(0, 0, 2.5);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  // ค่าที่ส่งจาก JavaScript เข้า shader
+  const uniforms = {
+    uTime: { value: 0.0 },
+    uLightDir: { value: new THREE.Vector3(0.4, 1.0, 0.8).normalize() }
+  };
+
+  const vertexShader = `
+    uniform float uTime;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+
+    void main() {
+      vUv = uv;
+      
+      // คำนวณ World Normal และส่งต่อไปยัง Fragment Shader
+      vNormal = normalize(normalMatrix * normal);
+
+      vec3 pos = position;
+
+      // เริ่มเขียน vertex shader ที่นี่
+      pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
+
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+    precision mediump float;
+
+    uniform float uTime;
+    uniform vec3 uLightDir;
+    varying vec3 vNormal;
+    varying vec2 vUv;
+
+    void main() {
+      // 1. กำหนดสีพื้นฐาน
+      vec3 baseColor = vec3(0.2, 0.6, 1.0); 
+
+      // 2. คำนวณแสงแบบ Diffuse (Lambert)
+      // ใช้ max() เพื่อป้องกันไม่ให้ค่าแสงติดลบเมื่อหันหลังให้แสง
+      float diffuse = max(dot(vNormal, uLightDir), 0.0);
+      
+      // 3. บวก Ambient Light เล็กน้อยเพื่อไม่ให้ฝั่งเงามืดสนิท
+      vec3 ambient = vec3(0.1);
+      
+      // 4. คำนวณสีสุดท้าย
+      vec3 color = baseColor * (diffuse + ambient);
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `;
+
+  // ใช้ SphereBufferGeometry
+  const geometry = new THREE.SphereBufferGeometry(0.8, 32, 32);
+  const material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms,
+    side: THREE.DoubleSide
+  });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  });
+
+  function animate(time) {
+    uniforms.uTime.value = time * 0.001;
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shader Starter (Toon + Outline)</title>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+
+<body>
+    <script>
+        // Scene / Camera / Renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xFFFFFF);
+
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            innerWidth / innerHeight,
+            0.1,
+            100
+        );
+        camera.position.set(0, 0, 2.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        // Uniforms (ค่าที่ส่งเข้าไปใน Shader)
+        const uniforms = {
+            uTime: { value: 0.0 },
+            uLightDir: { value: new THREE.Vector3(0.4, 1.0, 0.8).normalize() },
+            uTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/uv_grid_opengl.jpg') },
+            uOutlineColor: { value: new THREE.Color(0x000000) }, // สีเส้นขอบ (สีดำ)
+            uThickness: { value: 0.02 }                         // ความหนาของเส้นขอบ
+        };
+
+        // Shader สำหรับวัตถุหลัก (Toon Shading)
+        const vertexShader = `
+            uniform float uTime;
+            varying vec3 vNormal;
+            varying vec2 vUv;
+
+            void main() {
+              vUv = uv;
+              vNormal = normalMatrix * normal;
+              vec3 pos = position;
+
+              // เอฟเฟกต์ดัดขยับรูปทรงตามเวลา
+              pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
+
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            precision mediump float;
+
+            uniform vec3 uLightDir;
+            uniform float uTime;
+            uniform sampler2D uTexture;
+
+            varying vec3 vNormal;
+            varying vec2 vUv;
+
+            void main() {
+              vec3 baseColor = texture2D(uTexture, vUv).rgb;
+
+              vec3 N = normalize(vNormal);
+              vec3 L = normalize(uLightDir);
+              float diffuse = max(dot(N, L), 0.0);
+
+              // แบ่งระดับแสงเงาแบบ Toon (3 ระดับ)
+              float level = 3.0;
+              diffuse = floor(diffuse * level) / level;
+
+              float ambient = 0.4;
+              vec3 color = baseColor * (diffuse + ambient);
+
+              gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        // Shader สำหรับเส้นขอบ (Outline Shader)
+        const outlineVertexShader = `
+            uniform float uTime;
+            uniform float uThickness;
+
+            void main() {
+              vec3 pos = position;
+
+              // ขยับรูปทรงให้ตรงกับวัตถุหลัก
+              pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
+
+              // ขยายวัตถุออกไปตามทิศทาง Normal เพื่อสร้างเส้นขอบ
+              pos += normal * 0.03;
+
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `;
+
+        const outlineFragmentShader = `
+            precision mediump float;
+            uniform vec3 uOutlineColor;
+
+            void main() {
+              // พ่นสีพื้นของเส้นขอบ
+              gl_FragColor = vec4(uOutlineColor, 1.0);
+            }
+        `;
+
+        const geometry = new THREE.TorusKnotBufferGeometry(0.52, 0.2, 96, 16);
+
+        // สร้าง Material ทั้งสองชุด
+        const material = new THREE.ShaderMaterial({
+            vertexShader,
+            fragmentShader,
+            uniforms,
+            side: THREE.DoubleSide
+        });
+
+        const outlineMaterial = new THREE.ShaderMaterial({
+            vertexShader: outlineVertexShader,
+            fragmentShader: outlineFragmentShader,
+            uniforms,
+            side: THREE.BackSide // แสดงเฉพาะด้านหลังเพื่อทำเป็นเส้นขอบ
+        });
+
+        // รวมทั้งสอง Mesh เข้ากลุ่มเดียวกัน
+        const modelGroup = new THREE.Group();
+
+        const mainMesh = new THREE.Mesh(geometry, material);
+        const outlineMesh = new THREE.Mesh(geometry, outlineMaterial);
+
+        modelGroup.add(mainMesh);
+        modelGroup.add(outlineMesh);
+
+        scene.add(modelGroup);
+
+        // ปรับขนาดหน้าจออัตโนมัติ
+        addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        });
+
+        // ลูปอนิเมชัน
+        function animate(time) {
+            uniforms.uTime.value = time * 0.001;
+            controls.update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+    </script>
+</body>
+
+</html>

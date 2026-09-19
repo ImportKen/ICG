@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shader Starter (Matrix)</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<script>
+  // Scene / Camera / Renderer
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xFFFFFF);
+
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    innerWidth / innerHeight,
+    0.1,
+    100
+  );
+  camera.position.set(0, 0, 4);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  
+  // เพิ่ม Raycaster สำหรับตรวจจับการคลิกเลือกวัตถุ
+  const raycaster = new THREE.Raycaster();
+
+  // ค่าที่ส่งจาก JavaScript เข้า shader
+  const uniforms = {
+    uTime: { value: 0.0 },
+    uLightDir: { value: new THREE.Vector3(0.4, 1.0, 0.8).normalize() },
+    uTexture: { value: new THREE.TextureLoader().load('https://threejs.org/examples/textures/uv_grid_opengl.jpg') }
+  };
+
+  const vertexShader = `
+    uniform float uTime;
+
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    
+    void main() {
+      vUv = uv;
+      vNormal = normal;
+
+      vec3 pos = position;
+      pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
+
+      gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+    precision mediump float;
+
+    uniform float uTime;
+    uniform sampler2D uTexture;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    uniform vec3 uLightDir;
+
+    void main() {
+      vec3 color = texture2D(uTexture, vUv).rgb;
+
+      // lambert diffuse
+      vec3 N = normalize(vNormal);
+      vec3 L = normalize(uLightDir);
+      float diffuse = max(dot(N, L), 0.0);
+
+      // ambient
+      float ambient = 0.5;
+
+      // toon shading
+      diffuse = smoothstep(0.2, 0.3, diffuse);
+
+      color = color * (diffuse + ambient);
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `;
+
+  const outlineVertexShader = `
+    uniform float uTime;
+
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    
+    void main() {
+      vUv = uv;
+      vNormal = normal;
+      vec3 pos = position;
+
+      pos.z += sin(pos.x * 5.0 + uTime) * 0.1;
+
+      // scale up for outline
+      pos += normal * 0.04;
+
+      gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
+    }
+  `;
+
+  const outlineFragmentShader = `
+    precision mediump float;
+
+    void main() {
+      gl_FragColor = vec4(0.1, 0.1, 0.1, 1.0);
+    }
+  `;
+
+  const material = new THREE.ShaderMaterial({
+    vertexShader,
+    fragmentShader,
+    uniforms,
+    side: THREE.DoubleSide
+  });
+
+  const outlineMaterial = new THREE.ShaderMaterial({
+    vertexShader: outlineVertexShader,
+    fragmentShader: outlineFragmentShader,
+    uniforms,
+    side: THREE.BackSide
+  });
+
+  const objects = [];
+  const pointer = new THREE.Vector2();
+  let select_object = null;
+
+  renderer.domElement.addEventListener('click', onPick);
+
+  function onPick(e) {
+    const r = renderer.domElement.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    pointer.x = (x / r.width) * 2 - 1;
+    pointer.y = -(y / r.height) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const intersects = raycaster.intersectObjects(objects, false);
+    
+    if (intersects.length === 0) {
+      select_object = null;
+      return;
+    }
+    
+    select_object = intersects[0].object;
+    console.log('Selected Object:', select_object.name);
+  }
+
+  // ปรับให้รับ parameter "name" เพิ่มเติม
+  function addObject(name, geometry, pos) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.position.copy(pos);
+    scene.add(mesh);
+
+    const outlineMesh = new THREE.Mesh(geometry, outlineMaterial);
+    outlineMesh.position.copy(pos);
+    scene.add(outlineMesh);
+
+    objects.push(mesh);
+    return mesh;
+  }
+
+  addObject("Sphere", new THREE.SphereBufferGeometry(0.75, 32, 32), new THREE.Vector3(-2, 0, 0));
+  addObject("Box", new THREE.BoxBufferGeometry(1.25, 1.25, 1.25, 12, 12, 12), new THREE.Vector3(2, 0, 0));
+  addObject("Torus", new THREE.TorusKnotBufferGeometry(0.52, 0.2, 96, 16), new THREE.Vector3(0, 0, 0));
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  });
+
+  function animate(time) {
+    uniforms.uTime.value = time * 0.001;
+
+    // เลื่อนมุมกล้องไปหาวัตถุที่ถูกคลิกเลือก (ถ้ามี)
+    if (select_object != null) {
+      controls.target.lerp(select_object.position, 0.02);
+    }
+
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+</script>
+</body>
+</html>

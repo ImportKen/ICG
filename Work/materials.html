@@ -152,7 +152,7 @@ const uvs = [
             
         //load glb และใช้ pbr material
         const loader = new THREE.GLTFLoader();
-        loader.load('https://importken.github.io/micros.glb', (gltf) => {
+        loader.load('https://importken.github.io/closeDoor.glb', (gltf) => {
             const model = gltf.scene;
             model.traverse((child) => {
                 if (child.isMesh) {
@@ -162,6 +162,7 @@ const uvs = [
             });
             model.position.set(0, 0, 2);
             scene.add(model);
+            misxer
         });
 
 
